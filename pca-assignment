@@ -1,0 +1,47 @@
+
+%web_drop_table(WORK.IMPORT);
+
+
+FILENAME REFFILE '/folders/myfolders/politics .txt';
+
+PROC IMPORT DATAFILE=REFFILE
+	DBMS=DLM
+	OUT=WORK.IMPORT;
+	GETNAMES=YES;
+RUN;
+
+PROC CONTENTS DATA=WORK.IMPORT; RUN;
+
+
+%web_open_table(WORK.IMPORT);
+
+/* Choosing only numerical variables */
+data work.numeric_variables(keep=_numeric_);
+set work.import; run;
+/* Merging id variable from original table */ 
+data work.merged_table;
+merge work.numeric_variables work.import(keep=VAR7 var17);
+set work.numeric_variables; run;
+/* shuffling varibles to original position */
+data work.shuffled_table;
+   retain var7 var11 var13 trstep var17 var19 var21 var23 var25 var27;
+   set work.merged_table;
+run;
+/* renaming varibles to original state */
+data work.renamed_table(rename=(var7=cntry var11=trstprl var13=trstlgl trstep=trstplt var17=trstprt var19=trstep var21=trstun var23=imbgeco var25=imueclt var27=imwbcnt));
+set work.shuffled_table;
+/* Reducing empty observations */
+data work.row_reduced; set work.renamed_table;
+if trstprl ~= '.';
+run;
+/* Typecasting incorrect variable type */
+data work.type_casted; set work.row_reduced;
+trstprt_new = input(trstprt,char7.);
+run;
+/* Renaming the newly created variable */
+data work.pca_clean(drop=trstprt rename=(trstprt_new=trstprt)); set work.type_casted;
+/* princomp procedure */
+proc princomp data=work.pca_clean standard plots=scree plots=profile; run;
+proc prinqual data=work.pca_clean n=2 mdpref mdpref=3;
+id cntry;
+transform identity(trstprl trstlgl trstplt trstprt trstep trstun imbgeco imueclt imwbcnt); run;
