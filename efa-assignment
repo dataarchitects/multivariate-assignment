@@ -1,0 +1,23 @@
+
+%web_drop_table(WORK.IMPORT);
+
+
+FILENAME REFFILE '/folders/myfolders/humanvalues.txt';
+
+PROC IMPORT DATAFILE=REFFILE
+	DBMS=DLM
+	OUT=WORK.IMPORT;
+	GETNAMES=YES;
+RUN;
+
+PROC CONTENTS DATA=WORK.IMPORT; RUN;
+
+
+%web_open_table(WORK.IMPORT);
+/* Statistical summary of all variables */
+proc summary data=work.import mean median min std max mode print;
+variables ipcrtiv imprich ipeqopt ipshabt impsafe impdiff ipfrule ipudrst ipmodst ipgdtim impfree iphlppl ipsuces ipstrgv ipadvnt ipbhprp iprspot iplylfr impenv imptrad impfun;
+run;
+
+/* primary method */
+proc factor method=prinit data=work.import priors=smc corr msa rotate=varimax plots=all; run;
